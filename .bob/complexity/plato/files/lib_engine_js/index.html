@@ -1,0 +1,260 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>Plato - lib/engine.js</title>
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="">
+  <meta name="author" content="">
+
+  <!--[if lt IE 9]>
+  <script src="http://html5shim.googlecode.com/svn/trunk/html5.js"></script>
+  <![endif]-->
+
+  <link href="../../assets/css/vendor/morris.css" rel="stylesheet">
+  <link href="../../assets/css/vendor/bootstrap.css" rel="stylesheet">
+  <link href="../../assets/css/vendor/font-awesome.css" rel="stylesheet">
+  <link href="../../assets/css/vendor/codemirror.css" rel="stylesheet">
+  <link href="../../assets/css/plato.css" rel="stylesheet">
+  <link href="../../assets/css/plato-file.css" rel="stylesheet">
+
+</head>
+
+<body>
+
+<div class="navbar navbar-fixed-top">
+  <div class="container">
+    <a class="navbar-brand" href="http://github.com/es-analysis/plato">Plato on Github</a>
+    <ul class="nav navbar-nav">
+      <li>
+        <a href="../../index.html">Report Home</a>
+      </li>
+    </ul>
+  </div>
+</div>
+
+<div class="jumbotron">
+  <div class="container">
+    <h1>lib/engine.js</h1>
+  </div>
+</div>
+
+<div class="container aggregate-stats">
+  <div class="row">
+    <div class="col-md-6">
+      <h2 class="header">Maintainability <a href="http://blogs.msdn.com/b/codeanalysis/archive/2007/11/20/maintainability-index-range-and-meaning.aspx"><i class="icon icon-info-sign" rel="popover" data-placement="top" data-trigger="hover" data-content="A value between 0 and 100 that represents the relative ease of maintaining the code. A high value means better maintainability." data-original-title="Maintainability Index"  data-container="body"></i></a></h2>
+      <p class="stat">80.80</p>
+    </div>
+    <div class="col-md-6">
+      <h2 class="header">Lines of code <i class="icon icon-info-sign" rel="popover" data-placement="top" data-trigger="hover" data-content="Source Lines of Code / Logical Lines of Code" data-original-title="SLOC/LSLOC" data-container="body"></i></h2>
+      <p class="stat">143</p>
+    </div>
+  </div>
+  <div class="row historical">
+    <div class="col-md-6">
+      <p id="chart_historical_maint" class="chart"></p>
+    </div>
+    <div class="col-md-6">
+      <p id="chart_historical_sloc" class="chart"></p>
+    </div>
+  </div>
+  <div class="row">
+    <div class="col-md-6">
+      <h2 class="header">Difficulty  <a href="http://en.wikipedia.org/wiki/Halstead_complexity_measures"><i class="icon icon-info-sign" rel="popover" data-placement="top" data-trigger="hover" data-content="The difficulty measure is related to the difficulty of the program to write or understand." data-original-title="Difficulty" data-container="body"></i></a></h2>
+      <p class="stat">27.25</p>
+    </div>
+    <div class="col-md-6">
+      <h2 class="header">Estimated Errors  <a href="http://en.wikipedia.org/wiki/Halstead_complexity_measures"><i class="icon icon-info-sign" rel="popover" data-placement="top" data-trigger="hover" data-content="Halstead's delivered bugs is an estimate for the number of errors in the implementation." data-original-title="Delivered Bugs" data-container="body"></i></a></h2>
+      <p class="stat">1.16</p>
+    </div>
+  </div>
+</div>
+
+<div class="container charts">
+  <div class="row">
+    <h2 class="header">Function weight</h2>
+  </div>
+  <div class="row">
+    <div class="col-md-6">
+      <h3 class="chart-header">By Complexity <a href="http://en.wikipedia.org/wiki/Cyclomatic_complexity"><i class="icon icon-info-sign" rel="popover" data-placement="top" data-trigger="hover" data-content="This metric counts the number of distinct paths through a block of code. Lower values are better." data-original-title="Cyclomatic Complexity" data-container="body"></i></a></h3>
+      <div id="fn-by-complexity" class="stat"></div>
+    </div>
+    <div class="col-md-6">
+      <h3 class="chart-header">By SLOC  <i class="icon icon-info-sign" rel="popover" data-placement="top" data-trigger="hover" data-content="Source Lines of Code / Logical Lines of Code" data-original-title="SLOC/LSLOC" data-container="body"></i></h3>
+      <div id="fn-by-sloc" class="stat"></div>
+    </div>
+  </div>
+</div>
+
+<div class="container">
+  <div class="row">
+    <textarea id="file-source" class="col-md-12">var _ = require(&#039;lodash&#039;),
+  async = require(&#039;async&#039;),
+  mkdirp = require(&#039;mkdirp&#039;),
+  f = require(&#039;file&#039;),
+  fs = require(&#039;fs&#039;),
+  functions = require(&#039;./functions&#039;),
+  jazz = require(&#039;jazz&#039;),
+  p = require(&#039;path&#039;); 
+
+/**
+ * class Engine
+ *
+ * @param {String} opts: optional
+ * - ext: template file extension, files without this extension will be ignored.
+ * - mkdirp: temporary used for testing only, need to figure out how to mock required function using Sinon
+ */
+function Engine(opts) {
+  opts = opts || {};
+  this.ext = opts.ext || &#039;html&#039;;
+  mkdirp = opts.mkdirp || mkdirp;
+}
+
+/**
+ * Compile all template files (identified by file extension) in a directory.
+ * This can be done in parallel because compiling a template does not depend on other templates.
+ *
+ * @param {String} dir: directory containing the templates
+ * @param {Function} cb: standard cb(err, result) callback
+ */
+Engine.prototype.compile = function (dir, cb) {
+
+  var tasks = {},
+    self = this;
+
+  function _task(base, file) {
+    var baseFile = p.join(base, file),
+      baseUrlPath = baseFile.replace(/\\/g, &#039;/&#039;);
+    tasks[baseUrlPath.substr(baseUrlPath.indexOf(&#039;/&#039;) + 1)] = function (cb) {
+      fs.readFile(baseFile, &#039;utf8&#039;, function (err, result) {
+        cb(err, jazz.compile(result));
+      });
+    };
+  }
+
+  f.walkSync(dir, function (base, dirs, files) {
+    files.forEach(function (file) {
+      if (file.match(new RegExp(&#039;\\.&#039; + self.ext))) {
+        _task(base, file);
+      }
+    });
+  });
+
+  async.parallel(tasks, cb);
+};
+
+/**
+ * Compile all template files (identified by file extension) in a directory.
+ * This can be done in parallel because compiling a template does not depend on other templates.
+ *
+ * @param {String} dir: output directory where website files will be written to
+ * @param {Object} templates: compiled jazz templates
+ * @param {Object} params: template parameters and functions
+ * @param {Function} cb: standard cb(err, result) callback
+ */
+Engine.prototype.merge = function (dir, templates, params, cb) {
+
+  // merge a set of params to a set of templates
+  function _process(templates, params, cb) {
+    var _templates = _.extend(templates, {}), // process template copies, not the originals
+      tasks = {};
+
+    _.keys(_templates).forEach(function (key) {
+      tasks[key] = function (cb) {
+        _templates[key].process(params, function (data) {
+          cb(null, data);
+        });
+      };
+    });
+
+    async.parallel(tasks, function (err, results) {
+      cb(results);
+    });
+  }
+
+  var tasks = {};
+
+  _.keys(templates.pages).forEach(function (page) {
+    tasks[page] = function (cb) {
+
+      var pageParams = _.extend(_.extend({}, params), functions(page, templates, params)),
+        pageContent;
+
+      function _mergePartials(cb) {
+        _process(templates.partials, pageParams, function (result) {
+          pageParams.partials = result;
+          pageParams = _.extend(pageParams, functions(page, templates, pageParams));
+          _process(templates.partials, pageParams, function (result) {
+            pageParams.partials = result;
+            cb();
+          });
+        });
+      }
+
+      function _mergePage(cb) {
+        _process({ currpage: templates.pages[page] }, pageParams, function (result) {
+          pageParams.content = result.currpage;
+          cb();
+        });
+      }
+
+      function _mergeLayout(cb) {
+        var layout = (pageParams.sitemap &amp;&amp; pageParams.sitemap[page] &amp;&amp; pageParams.sitemap[page].layout) ? pageParams.sitemap[page].layout : &#039;default.html&#039;;
+        _process({ currlayout: templates.layouts[layout] }, pageParams, function (result) {
+          pageContent = result.currlayout;
+          cb();
+        });
+      }
+
+      function _writePage(cb) {
+        mkdirp(p.join(dir, page).replace(/(\/[^\/]+$|\\[^\\]+$)/, &#039;&#039;), &#039;0755&#039;, function (err) {
+          if (!err) {
+            fs.writeFile(p.join(dir, page), pageContent, &#039;utf8&#039;, function (err) {
+              if (!err) {
+                console.log(&#039;+ creating %s&#039;, p.join(dir, page));
+              }
+              cb(err);
+            });
+          } else {
+            cb(err);
+          }
+        });
+      }
+
+      async.series([_mergePartials, _mergePage, _mergeLayout, _writePage], cb);
+    };
+  });
+
+  async.parallel(tasks, function (err, results) {
+    cb(err, _.keys(results));
+  });
+};
+
+module.exports = Engine;</textarea>
+  </div>
+</div>
+
+<footer class="footer">
+  <div class="container">
+    <p>.</p>
+  </div>
+</footer>
+
+<script type="text/html" id="complexity-popover-template">
+  <div class="complexity-notice">
+    Complexity : {{ complexity.cyclomatic }} <br>
+    Length : {{ complexity.halstead.length }} <br>
+    Difficulty : {{ complexity.halstead.difficulty.toFixed(2) }} <br>
+    Est # bugs : {{ complexity.halstead.bugs.toFixed(2) }}<br>
+  </div>
+</script>
+
+<script type="text/javascript" src="../../assets/scripts/bundles/core-bundle.js"></script>
+<script type="text/javascript" src="../../assets/scripts/bundles/codemirror.js"></script>
+<script type="text/javascript" src="../../assets/scripts/codemirror.markpopovertext.js"></script>
+<script type="text/javascript" src="report.js"></script>
+<script type="text/javascript" src="report.history.js"></script>
+<script type="text/javascript" src="../../assets/scripts/plato-file.js"></script>
+</body>
+</html>

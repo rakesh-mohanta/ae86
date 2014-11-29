@@ -1,0 +1,234 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>Plato - lib/ae86.js</title>
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="">
+  <meta name="author" content="">
+
+  <!--[if lt IE 9]>
+  <script src="http://html5shim.googlecode.com/svn/trunk/html5.js"></script>
+  <![endif]-->
+
+  <link href="../../assets/css/vendor/morris.css" rel="stylesheet">
+  <link href="../../assets/css/vendor/bootstrap.css" rel="stylesheet">
+  <link href="../../assets/css/vendor/font-awesome.css" rel="stylesheet">
+  <link href="../../assets/css/vendor/codemirror.css" rel="stylesheet">
+  <link href="../../assets/css/plato.css" rel="stylesheet">
+  <link href="../../assets/css/plato-file.css" rel="stylesheet">
+
+</head>
+
+<body>
+
+<div class="navbar navbar-fixed-top">
+  <div class="container">
+    <a class="navbar-brand" href="http://github.com/es-analysis/plato">Plato on Github</a>
+    <ul class="nav navbar-nav">
+      <li>
+        <a href="../../index.html">Report Home</a>
+      </li>
+    </ul>
+  </div>
+</div>
+
+<div class="jumbotron">
+  <div class="container">
+    <h1>lib/ae86.js</h1>
+  </div>
+</div>
+
+<div class="container aggregate-stats">
+  <div class="row">
+    <div class="col-md-6">
+      <h2 class="header">Maintainability <a href="http://blogs.msdn.com/b/codeanalysis/archive/2007/11/20/maintainability-index-range-and-meaning.aspx"><i class="icon icon-info-sign" rel="popover" data-placement="top" data-trigger="hover" data-content="A value between 0 and 100 that represents the relative ease of maintaining the code. A high value means better maintainability." data-original-title="Maintainability Index"  data-container="body"></i></a></h2>
+      <p class="stat">79.73</p>
+    </div>
+    <div class="col-md-6">
+      <h2 class="header">Lines of code <i class="icon icon-info-sign" rel="popover" data-placement="top" data-trigger="hover" data-content="Source Lines of Code / Logical Lines of Code" data-original-title="SLOC/LSLOC" data-container="body"></i></h2>
+      <p class="stat">117</p>
+    </div>
+  </div>
+  <div class="row historical">
+    <div class="col-md-6">
+      <p id="chart_historical_maint" class="chart"></p>
+    </div>
+    <div class="col-md-6">
+      <p id="chart_historical_sloc" class="chart"></p>
+    </div>
+  </div>
+  <div class="row">
+    <div class="col-md-6">
+      <h2 class="header">Difficulty  <a href="http://en.wikipedia.org/wiki/Halstead_complexity_measures"><i class="icon icon-info-sign" rel="popover" data-placement="top" data-trigger="hover" data-content="The difficulty measure is related to the difficulty of the program to write or understand." data-original-title="Difficulty" data-container="body"></i></a></h2>
+      <p class="stat">16.05</p>
+    </div>
+    <div class="col-md-6">
+      <h2 class="header">Estimated Errors  <a href="http://en.wikipedia.org/wiki/Halstead_complexity_measures"><i class="icon icon-info-sign" rel="popover" data-placement="top" data-trigger="hover" data-content="Halstead's delivered bugs is an estimate for the number of errors in the implementation." data-original-title="Delivered Bugs" data-container="body"></i></a></h2>
+      <p class="stat">0.77</p>
+    </div>
+  </div>
+</div>
+
+<div class="container charts">
+  <div class="row">
+    <h2 class="header">Function weight</h2>
+  </div>
+  <div class="row">
+    <div class="col-md-6">
+      <h3 class="chart-header">By Complexity <a href="http://en.wikipedia.org/wiki/Cyclomatic_complexity"><i class="icon icon-info-sign" rel="popover" data-placement="top" data-trigger="hover" data-content="This metric counts the number of distinct paths through a block of code. Lower values are better." data-original-title="Cyclomatic Complexity" data-container="body"></i></a></h3>
+      <div id="fn-by-complexity" class="stat"></div>
+    </div>
+    <div class="col-md-6">
+      <h3 class="chart-header">By SLOC  <i class="icon icon-info-sign" rel="popover" data-placement="top" data-trigger="hover" data-content="Source Lines of Code / Logical Lines of Code" data-original-title="SLOC/LSLOC" data-container="body"></i></h3>
+      <div id="fn-by-sloc" class="stat"></div>
+    </div>
+  </div>
+</div>
+
+<div class="container">
+  <div class="row">
+    <textarea id="file-source" class="col-md-12">var _ = require(&#039;lodash&#039;),
+  async = require (&#039;async&#039;),
+  dateformat = require(&#039;dateformat&#039;),
+  Engine = require(&#039;./engine&#039;),
+  ncp = require(&#039;ncp&#039;),
+  p = require(&#039;path&#039;),
+  watchtree = require(&#039;watch-tree-maintained&#039;),
+  wrench = require(&#039;wrench&#039;);
+
+/**
+ * class AE86
+ */
+function AE86(opts) {
+  opts = opts || {};
+  this.outDir = opts.outDir || &#039;out&#039;;
+}
+
+/**
+ * Create example AE86 project files in current directory.
+ *
+ * @param {Function} cb: standard cb(err, result) callback
+ */
+AE86.prototype.init = function (cb) {
+  ncp.ncp(p.join(__dirname, &#039;../examples&#039;), &#039;.&#039;, cb);
+};
+
+/**
+ * Generate website based on the templates and params.
+ *
+ * @param {Function} cb: standard cb(err, result) callback
+ */
+AE86.prototype.generate = function (cb) {
+
+  var self = this;
+
+  function _static(cb) {
+    // copy static files as-is
+    ncp.ncp(&#039;static&#039;, self.outDir, cb);
+  }
+
+  function _pages(cb) {
+
+    function _params() {
+      // initialise userland params
+      var params = require(p.join(process.cwd(), &#039;params&#039;)).params;
+      // add website info
+      params.sitemap = params.sitemap || {};
+      params.__genId = dateformat(&#039;yyyymmddHHMMss&#039;);
+      return params;
+    }
+
+    var engine = new Engine(),
+      tasks = {};
+
+    [&#039;partials&#039;, &#039;layouts&#039;, &#039;pages&#039;].forEach(function (dir) {
+      tasks[dir] = function (cb) {
+        engine.compile(dir, cb);
+      };
+    });
+
+    async.parallel(tasks, function (err, results) {
+      engine.merge(self.outDir, results, _params(), cb);
+    });
+  }
+
+  async.parallel([_static, _pages], cb);
+};
+
+/**
+ * Watch for any file changes in AE86 project files.
+ * A change means the project website will automatically be regenerated.
+ */
+AE86.prototype.watch = function () {
+  const SAMPLE_RATE = 5;
+
+  var self = this;
+
+  function _listener() {
+    // remove cached params.js module so the regeneration will pick up a fresh (possibly modified) params.js
+    delete require.cache[p.join(process.cwd(), &#039;params.js&#039;)];
+    // no callback because the process shouldn&#039;t exit
+    self.generate();
+  }
+
+  function _watch(file) {
+    var watcher = watchtree.watchTree(file, {
+      ignore: &#039;\\.swp&#039;,
+      &#039;sample-rate&#039;: SAMPLE_RATE
+    });
+    watcher.on(&#039;fileCreated&#039;, function(path, stats) {
+      console.log(&#039;%s was created&#039;, file);
+      _listener();
+    });
+    watcher.on(&#039;fileModified&#039;, function(path, stats) {
+      console.log(&#039;%s was modified&#039;, file);
+      _listener();
+    });
+    watcher.on(&#039;fileDeleted&#039;, function(path) {
+      console.log(&#039;%s was deleted&#039;, file);
+      self.clean();
+      _listener();
+    });
+  }
+
+  [&#039;static&#039;, &#039;partials&#039;, &#039;layouts&#039;, &#039;pages&#039;, &#039;params.js&#039;].forEach(_watch);
+};
+
+/**
+ * Remove the generated website.
+ *
+ * @param {Function} cb: standard cb(err, result) callback
+ */
+AE86.prototype.clean = function (cb) {
+  wrench.rmdirRecursive(this.outDir, cb);
+};
+
+module.exports = AE86;</textarea>
+  </div>
+</div>
+
+<footer class="footer">
+  <div class="container">
+    <p>.</p>
+  </div>
+</footer>
+
+<script type="text/html" id="complexity-popover-template">
+  <div class="complexity-notice">
+    Complexity : {{ complexity.cyclomatic }} <br>
+    Length : {{ complexity.halstead.length }} <br>
+    Difficulty : {{ complexity.halstead.difficulty.toFixed(2) }} <br>
+    Est # bugs : {{ complexity.halstead.bugs.toFixed(2) }}<br>
+  </div>
+</script>
+
+<script type="text/javascript" src="../../assets/scripts/bundles/core-bundle.js"></script>
+<script type="text/javascript" src="../../assets/scripts/bundles/codemirror.js"></script>
+<script type="text/javascript" src="../../assets/scripts/codemirror.markpopovertext.js"></script>
+<script type="text/javascript" src="report.js"></script>
+<script type="text/javascript" src="report.history.js"></script>
+<script type="text/javascript" src="../../assets/scripts/plato-file.js"></script>
+</body>
+</html>

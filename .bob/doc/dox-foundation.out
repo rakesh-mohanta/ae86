@@ -1,0 +1,4 @@
+[ 'lib/ae86.js',
+  'lib/cli.js',
+  'lib/engine.js',
+  'lib/functions.js' ]
